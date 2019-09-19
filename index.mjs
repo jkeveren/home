@@ -8,15 +8,9 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 	// set up devices
 
 	const requestDevice = (device, endpoint, data) => {
-		const promise = new Promise(async (resolve, reject) => {
+		const requestPromise = new Promise(async (resolve, reject) => {
 			if (device.requestQueue.length) {
-				try {
-					await device.requestQueue[device.requestQueue.length - 1];
-				} catch (e) {
-					// ignore errors here as they should be handled elsewhere
-				}
-				// add small delay so device can keep up with requests and so no requests are dropped
-				await new Promise(resolve => setTimeout(resolve, 5));
+				await device.requestQueue[device.requestQueue.length - 1];
 			}
 			const requestBody = JSON.stringify({
 				deviceid: '',
@@ -24,23 +18,25 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 			});
 			const request = http.request(`http://10.0.0.${device.ipSuffix}:8081/zeroconf/${endpoint}`, {
 				method: 'post',
-				headers: {'content-length': requestBody.length}
+				headers: {'content-length': requestBody.length},
+				timeout: 3000
+			});
+			request.on('socket', socket => setTimeout(() => socket.destroy(), 1000));
+			request.on('error', error => {
+				device.requestQueue.shift();
+				resolve(error);
 			});
 			request.write(requestBody);
 			request.end();
-			request.on('error', error => {
-				reject(error);
-			});
 			const response = await new Promise(resolve => request.on('response', resolve));
 			const responseBody = await readStream(response);
 			device.requestQueue.shift();
-			resolve(JSON.parse(responseBody));
+			// add small delay so device can keep up with requests
+			setTimeout(() => resolve(JSON.parse(responseBody)), 5);
 		});
-		device.requestQueue.push(promise);
-		return promise;
+		device.requestQueue.push(requestPromise);
+		return requestPromise;
 	};
-
-	const getStatus = async device => JSON.parse((await requestDevice(device, 'info')).data).switch === 'on';
 
 	let devices = [
 		['Light 1', 64, 1, ['light']],
@@ -57,13 +53,20 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 			hotkey: args[2],
 			tags: args[3],
 			requestQueue: []
-		};
-		device.isOn = getStatus(device);
+		}
+		// set off all isOn requests simultaneously
+		device.isOn = requestDevice(device, 'info');
 		return device;
 	});
 
+	// await all inOn requests and resolve status
 	for (const device of devices) {
-		device.isOn = await device.isOn;
+		const infoResult = await device.isOn;
+		if (infoResult instanceof Error) {
+			device.isOn = false;
+		} else {
+			device.isOn = JSON.parse(infoResult.data).switch === 'on';
+		}
 	}
 
 	// start HTTPServer
@@ -90,7 +93,7 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 			});
 		} 
 	});
-	const HTTPPort = 8080
+	const HTTPPort = 8080;
 	HTTPServer.listen(HTTPPort, error => {
 		if (error) {
 			throw error;
@@ -105,15 +108,12 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 			message = JSON.parse(message);
 			if (message.type === 'toggle') {
 				const device = devices[message.data];
-				try {
-					const result = await requestDevice(device, 'switch', {switch: device.isOn ? 'off' : 'on'})
-					if (result.error !== 0) {
-						console.error(result);
-					} else {
-						device.isOn = !device.isOn;
-					}
-				} catch (error) {
-					console.error(error);
+				const result = await requestDevice(device, 'switch', {switch: device.isOn ? 'off' : 'on'})
+				if (result instanceof Error) {
+					console.error(result);
+					send('error', result.stack);
+				} else {
+					device.isOn = !device.isOn;
 				}
 			}
 		});

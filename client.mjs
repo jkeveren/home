@@ -4,11 +4,17 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 	let webSocket;
 	let send;
 	let devices;
+	const websocketMessageTypeHandlers = {
+		error: data => {
+			console.error(data);
+		},
+		devices: data => {
+			devices = data;
+		},
+	}
 	const webSocketMessageHandler = ({data}) => {
 		const message = JSON.parse(data);
-		if (message.type === 'devices') {
-			devices = message.data;
-		}
+		websocketMessageTypeHandlers[message.type](message.data);
 	}
 	(async () => {for (;;) {await new Promise(async resolve => {
 		webSocket = new WebSocket(`ws://${location.host}/`);
@@ -25,12 +31,22 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 
 	await new Promise(resolve => webSocket.addEventListener('open', resolve));
 
+
 	document.addEventListener('keydown', event => {
 		for (const deviceIndex in devices) {
 			const device = devices[deviceIndex];
 			if (event.key == device.hotkey) {
 				send('toggle', deviceIndex);
 			}
+		}
+		if (event.key === ' ') {
+			let i = 0;
+			const interval = setInterval(() => {
+				send('toggle', i++);
+				if (i === devices.length) {
+					clearInterval(interval);
+				}
+			}, 100);
 		}
 	});
 })();
