@@ -83,7 +83,7 @@ import log from './log.mjs';
 	HTTPServer.on('request', async (req, res) => {
 		if (req.url === '/') {
 			res.setHeader('content-type', 'text/html');
-			res.end('<!DOCTYPE html><html lang=en-US><title>Home Control</title><script type=module src=client.mjs></script>');
+			res.end('<!DOCTYPE html><html lang=en-US><title>Home</title><script type=module src=client.mjs></script>');
 		} else {
 			res.setHeader('content-type', 'application/javascript');
 			fs.readFile(`.${req.url}`, (error, file) => {
