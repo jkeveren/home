@@ -4,7 +4,7 @@ import fs from 'fs';
 import readStream from './readStream.mjs';
 import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 import net from 'net';
-import devices from './devices';
+import devices from './devices.mjs';
 import log from './log.mjs';
 
 (async () => {
