@@ -1,0 +1,12 @@
+[Unit]
+After=network.target
+
+[Service]
+Type=simple
+User=server
+WorkingDirectory=/home/server/home-control
+ExecStart=/usr/bin/node --experimental-modules ./server.mjs
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
