@@ -1,6 +1,7 @@
 import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 import devices from './devices.mjs';
 import log from './log.mjs';
+import createElement from './createElement.mjs';
 
 (async () => {
 	let webSocket;
@@ -33,15 +34,26 @@ import log from './log.mjs';
 
 	await new Promise(resolve => webSocket.addEventListener('open', resolve));
 
+	const toggle = deviceIndex => send('toggle', [deviceIndex]);
+
+	for (const device of devices) {
+		const button = createElement({
+			parentElement: document.body,
+			tagName: 'button',
+			innerText: device.name
+		});
+		button.addEventListener('click', e => {
+			toggle(device.index);
+		})
+	}
+
+	// add buttons for actions here //
+
 	const lastKeyStates = {};
 	const keyStates = {};
 
 	// returns true if new state
 	const updateKeyStates = e => (lastKeyStates[e.key] = !!keyStates[e.key]) !== (keyStates[e.key] = e.type === 'keydown');
-
-	document.addEventListener('click', () => {
-		send('toggle', [0]);
-	});
 
 	document.addEventListener('keydown', e => {
 		if (updateKeyStates(e)) {
