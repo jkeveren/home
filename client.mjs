@@ -1,5 +1,6 @@
 import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 import devices from './devices.mjs';
+import log from './log.mjs';
 
 (async () => {
 	let webSocket;
