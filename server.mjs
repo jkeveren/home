@@ -8,7 +8,6 @@ import devices from './devices.mjs';
 import log from './log.mjs';
 
 (async () => {
-
 	// set up devices
 	const requestDevice = (device, endpoint, data, timeoutLength) => {
 		const requestPromise = new Promise(async (resolve, reject) => {
@@ -83,11 +82,11 @@ import log from './log.mjs';
 	HTTPServer.on('request', async (req, res) => {
 		if (req.url === '/') {
 			res.setHeader('content-type', 'text/html');
-			res.end('<!DOCTYPE html><html lang=en-US><title>Home</title><script type=module src=client.mjs></script>');
+			res.end('<!DOCTYPE html><html lang=en-US><meta name=viewport content=width=device-width,user-scalable=no /><title>Home</title><script type=module src=client.mjs></script>');
 		} else {
 			res.setHeader('content-type', 'application/javascript');
 			fs.readFile(`.${req.url}`, (error, file) => {
-				if (error) {	
+				if (error) {
 					if (['ENOENT', 'EISDIR'].includes(error.code)) {
 						res.statusCode = 404;
 						res.end('not found');
@@ -99,7 +98,7 @@ import log from './log.mjs';
 				}
 				res.end(file);
 			});
-		} 
+		}
 	});
 	const HTTPPort = 10000;
 	HTTPServer.listen(HTTPPort, error => {

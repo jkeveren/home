@@ -2,6 +2,9 @@ import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
 import devices from './devices.mjs';
 import log from './log.mjs';
 import createElement from './createElement.mjs';
+import assign from './assign.mjs';
+import createButton from './createButton.mjs';
+import loadFont from './loadFont.mjs';
 
 (async () => {
 	let webSocket;
@@ -32,19 +35,60 @@ import createElement from './createElement.mjs';
 		send = createWebSocketMessageSender(webSocket);
 	})}})();
 
-	await new Promise(resolve => webSocket.addEventListener('open', resolve));
+	// set global style. must be done before font load
+	createElement({
+		parentElement: document.head,
+		tagName: 'style',
+	});
+	document.styleSheets[0].insertRule(`* {
+		box-sizing: border-box;
+		margin: 0;
+		fontSize: '1rem',
+		font-family: 'Roboto', sans-serif,
+// 		border: 1px dashed black;
+	}`);
+
+	await Promise.all([
+// 		new Promise(resolve => webSocket.addEventListener('open', resolve)),
+		loadFont('https://fonts.googleapis.com/css?family=Roboto&display=swap')
+	]);
 
 	const toggle = deviceIndex => send('toggle', [deviceIndex]);
 
+	// root element styling
+	assign(document.documentElement.style, {
+		background: '#333',
+		fontSize: '17px'
+	});
+
+	const spacing = 20; // px
+	const spacingString = `${spacing/2}px`;
+
+	assign(document.body.style, {
+		padding: spacingString,
+		display: 'flex',
+		flexWrap: 'wrap',
+		justifyContent: 'center',
+	});
+
 	for (const device of devices) {
-		const button = createElement({
+		const button = createButton({
 			parentElement: document.body,
 			tagName: 'button',
-			innerText: device.name
+			innerText: device.name,
+			style: {
+				// dimensions
+				width: '130px',
+				height: '50px',
+				margin: spacingString,
+				// style
+				background: '#444',
+				color: '#ddd',
+			}
 		});
 		button.addEventListener('click', e => {
 			toggle(device.index);
-		})
+		});
 	}
 
 	// add buttons for actions here //
