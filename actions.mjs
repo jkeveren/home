@@ -15,7 +15,7 @@ const requestDevice = async (hostname, endpoint, data) => {
 			deviceid: '',
 			data: data || {},
 		});
-		console.log(requestBody);
+// 		console.log(requestBody);
 		const request = http.request(`http://${hostname}:8081/zeroconf/${endpoint}`, {
 			method: 'post',
 			headers: {'content-length': requestBody.length}
