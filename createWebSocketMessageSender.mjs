@@ -1,1 +1,0 @@
-export default webSocket => (type, data) => webSocket.send(JSON.stringify({type, data}));

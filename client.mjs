@@ -1,113 +1,84 @@
-import createWebSocketMessageSender from './createWebSocketMessageSender.mjs';
-import devices from './devices.mjs';
-import log from './log.mjs';
-import createElement from './createElement.mjs';
-import assign from './assign.mjs';
-import createButton from './createButton.mjs';
-import loadFont from './loadFont.mjs';
+import actions from './actions.mjs';
 
-(async () => {
-	let webSocket;
-	let send;
-	const websocketMessageTypeHandlers = {
-		error: data => {
-			console.error(data);
-		}
+// set global style
+
+document.head.appendChild(document.createElement('style'));
+document.styleSheets[0].insertRule(`* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	font-family: monospace;
+}`);
+
+// style body and buttons
+
+const spacing = 20; // px
+
+Object.assign(document.body.style, {
+	padding: `${spacing}px`,
+	paddingTop: 0,
+	display: 'flex',
+	flexDirection: 'column',
+	alignItems: 'center',
+});
+
+document.styleSheets[0].insertRule(`button {
+	width: 100%;
+	max-width: 500px;
+	height: 50px;
+	margin-top: ${spacing}px;
+	background: transparent;
+	color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	cursor: pointer;
+	user-select: none;
+	transition: 0.5s background;
+}`);
+
+// define :active before other pseudos so it has precedence given the same specificity
+// button.active so button can be visibly "clicked" with keyboard buttons
+document.styleSheets[0].insertRule(`button:active, button.active {
+	transition: none;
+	background: #fff7;
+}`);
+
+// remove focus indicator for non-keyboard-only users
+document.styleSheets[0].insertRule(`body:not(.accessibility) *:focus {
+	outline: none;
+}`);
+addEventListener('keydown', event => {
+	if (event.key === 'Tab' && !(event.repeat || event.ctrlKey || event.shiftKey || event.altKey || event.metaKey)) {
+		document.body.classList.add('accessibility');
 	}
-	const webSocketMessageHandler = ({data}) => {
-		const message = JSON.parse(data);
-		websocketMessageTypeHandlers[message.type](message.data);
+});
+addEventListener('click', event => {
+	document.body.classList.remove('accessibility');
+});
+
+// create buttons and trigger actions
+
+const invokeAction = async action => {
+	const response = await fetch(`/${encodeURIComponent(action.name)}`);
+	if (!response.ok) {
+		const error = await response.text();
+		console.error(error);
 	}
-	(async () => {for (;;) {await new Promise(async resolve => {
-		webSocket = new WebSocket(`ws://${location.host}/`);
-		const webSocketCloseHandler = () => {
-			webSocket.removeEventListener('message', webSocketMessageHandler);
-			webSocket.removeEventListener('close', webSocketCloseHandler);
-			console.log('disconnected');
-			setTimeout(() => {
-				console.log('attempting to reconnect');
-				resolve();
-			}, 500);
-		}
-		webSocket.addEventListener('close', webSocketCloseHandler);
-		webSocket.addEventListener('open', () => console.log('connected'))
-		webSocket.addEventListener('message', webSocketMessageHandler);
-		send = createWebSocketMessageSender(webSocket);
-	})}})();
+};
 
-	// set global style. must be done before font load
-	createElement({
-		parentElement: document.head,
-		tagName: 'style',
+for (const action of actions) {
+	const button = Object.assign(document.body.appendChild(document.createElement('button')), {
+		textContent: `${action.name} (${action.keyboardKey})`,
 	});
-	document.styleSheets[0].insertRule(`* {
-		box-sizing: border-box;
-		margin: 0;
-		fontSize: '1rem',
-		font-family: 'Roboto', sans-serif,
-// 		border: 1px dashed black;
-	}`);
-
-	await Promise.all([
-// 		new Promise(resolve => webSocket.addEventListener('open', resolve)),
-		loadFont('https://fonts.googleapis.com/css?family=Roboto&display=swap')
-	]);
-
-	const toggle = deviceIndex => send('toggle', [deviceIndex]);
-
-	// root element styling
-	assign(document.documentElement.style, {
-		background: '#333',
-		fontSize: '17px'
+	button.addEventListener('click', () => {
+		invokeAction(action);
 	});
-
-	const spacing = 20; // px
-	const spacingString = `${spacing/2}px`;
-
-	assign(document.body.style, {
-		padding: spacingString,
-		display: 'flex',
-		flexWrap: 'wrap',
-		justifyContent: 'center',
-	});
-
-	for (const device of devices) {
-		const button = createButton({
-			parentElement: document.body,
-			tagName: 'button',
-			innerText: device.name,
-			style: {
-				// dimensions
-				width: '130px',
-				height: '50px',
-				margin: spacingString,
-				// style
-				background: '#444',
-				color: '#ddd',
-			}
-		});
-		button.addEventListener('click', e => {
-			toggle(device.index);
-		});
-	}
-
-	// add buttons for actions here //
-
-	const lastKeyStates = {};
-	const keyStates = {};
-
-	// returns true if new state
-	const updateKeyStates = e => (lastKeyStates[e.key] = !!keyStates[e.key]) !== (keyStates[e.key] = e.type === 'keydown');
-
-	document.addEventListener('keydown', e => {
-		if (updateKeyStates(e)) {
-			for (const deviceIndex in devices) {
-				const device = devices[deviceIndex];
-				if (event.key == device.hotkey) {
-					send('toggle', [deviceIndex]);
-				}
-			}
+	addEventListener('keydown', event => {
+		if (event.key === action.keyboardKey && !(event.repeat || event.ctrlKey || event.shiftKey || event.altKey || event.metaKey)) {
+			// visually "click" relevant button
+			button.classList.add('active');
+			setTimeout(() => button.classList.remove('active'));
+			invokeAction(action);
 		}
 	});
-	document.addEventListener('keyup', updateKeyStates);
-})();
+}
