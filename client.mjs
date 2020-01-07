@@ -58,8 +58,13 @@ addEventListener('click', event => {
 
 // create buttons and trigger actions
 
-const invokeAction = async action => {
-	const response = await fetch(`/${encodeURIComponent(action.name)}`);
+let alternateAction = false;
+const modifierHandler = event => alternateAction = event.shiftKey;
+addEventListener('keydown', modifierHandler);
+addEventListener('keyup', modifierHandler);
+
+const invokeAction = async (action, actionArguments) => {
+	const response = await fetch(`/${encodeURIComponent(action.name)}${actionArguments ? `/${actionArguments}` : ''}`);
 	if (!response.ok) {
 		const error = await response.text();
 		console.error(error);
@@ -71,14 +76,14 @@ for (const action of actions) {
 		textContent: `${action.name} (${action.keyboardKey})`,
 	});
 	button.addEventListener('click', () => {
-		invokeAction(action);
+		invokeAction(action, alternateAction);
 	});
 	addEventListener('keydown', event => {
-		if (event.key === action.keyboardKey && !(event.repeat || event.ctrlKey || event.shiftKey || event.altKey || event.metaKey)) {
+		if (!(event.repeat || event.code !== action.keyboardKey || event.ctrlKey || event.altKey || event.metaKey)) {
 			// visually "click" relevant button
 			button.classList.add('active');
 			setTimeout(() => button.classList.remove('active'));
-			invokeAction(action);
+			invokeAction(action, alternateAction);
 		}
 	});
 }

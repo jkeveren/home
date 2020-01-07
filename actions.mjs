@@ -33,17 +33,27 @@ const requestDevice = async (hostname, endpoint, data) => {
 }
 
 const getDeviceState = async hostname => JSON.parse(await requestDevice(hostname, 'info')).switch === 'on';
-const setDeviceState = (hostname, state) => requestDevice(hostname, 'switch', {switch: state ? 'on' : 'off'})
+const setDeviceState = (hostname, state) => requestDevice(hostname, 'switch', {switch: state ? 'on' : 'off'});
 const toggleDeviceState = async hostname => {
 	const state = await getDeviceState(hostname);
 	await setDeviceState(hostname, !state);
 };
 
 const lights = devices.filter(device => device.tags.includes('light'));
-const setLights = state => {
+const defaultLights = [];
+const notDefaultLights = [];
+
+for (const device of lights) {
+	if (device.tags.includes('default')) {
+		defaultLights.push(device);
+	} else {
+		notDefaultLights.push(device);
+	}
+}
+
+const setDeviceStates = (devices, state) => {
 	const setDeviceStatePromises = [];
-	for (const device of lights) {
-		console.log(device);
+	for (const device of devices) {
 		setDeviceStatePromises.push(setDeviceState(device.hostname, state));
 	}
 	return Promise.all(setDeviceStatePromises);
@@ -51,73 +61,45 @@ const setLights = state => {
 
 const actions = [];
 
+actions.push(...[
+	{
+		name: 'Lights On',
+		keyboardKey: 'KeyN',
+		execute: async () => setDeviceStates(lights, true)
+	},
+	{
+		name: 'Lights Off',
+		keyboardKey: 'KeyF',
+		execute: async () => setDeviceStates(lights, false)
+	},
+	{
+		name: 'Default',
+		keyboardKey: 'KeyD',
+		execute: async () => {
+			setDeviceStates(defaultLights, true);
+			setDeviceStates(notDefaultLights, false);
+		}
+	},
+]);
+
 // create an action for each device
 
 for (const device of devices) {
 	actions.push(Object.assign(
 		{
-			execute: () => toggleDeviceState(device.hostname),
+			execute: alternateAction => {
+				if (device.tags.includes('light') && alternateAction) {
+					// make only this light on
+					for (const light of lights) {
+						setDeviceState(light.hostname, light === device);
+					}
+				} else {
+					toggleDeviceState(device.hostname)
+				}
+			},
 		},
 		Object.fromEntries(Object.entries(device).filter(([key]) => ['name', 'keyboardKey'].includes(key)))
 	));
 }
-
-actions.push(...[
-	{
-		name: 'Toggle Lights',
-		keyboardKey: 'l',
-		execute: async () => {
-			const getDeviceStatePromises = [];
-			for (const device of lights) {
-				getDeviceStatePromises.push(getDeviceState(device.hostname));
-			}
-			const newState = ((await Promise.all(getDeviceStatePromises)).map(state => state ? 1 : 0).reduce((sum, accumulator) => sum + accumulator) / lights.length) < 0.5 ? true : false;
-			await setLights(newState);
-		}
-	},
-	{
-		name: 'Lights Off',
-		keyboardKey: 'f',
-		execute: async () => setLights(false)
-	},
-	{
-		name: 'Lights On',
-		keyboardKey: 'n',
-		execute: async () => setLights(true)
-	},
-// 	{
-// 		name: 'Warp Speed',
-// 		keyboardKey: 'Enter',
-// 		execute: async () => {
-// 			// light devices in order of turning off
-// 			const sections = [
-// 				['Light 1'],
-// 				['Light 2', 'Kitchen Lights', 'Mirror Lights'],
-// 				['Light 3'],
-// 				['Light 4']
-// 			];
-// 			for (const sectionIndex in sections) {
-// 				sections[sectionIndex] = sections[sectionIndex].map(deviceName => devices.find(device => device.name === deviceName));
-// 			}
-// 			// turn lights off
-// 			const offPromises = [];
-// 			for (const section of sections) {
-// 				for (const device of section) {
-// 					offPromises.push(setDeviceState(device.hostname, false));
-// 				}
-// 			}
-// 			await Promise.all(offPromises);
-// 			for (const section of sections) {
-// 				for (const device of section) {
-// 					setDeviceState(device.hostname, true);
-// 				}
-// 				await delay(400);
-// 				for (const device of section) {
-// 					setDeviceState(device.hostname, false);
-// 				}
-// 			}
-// 		}
-// 	}
-]);
 
 export default actions;
