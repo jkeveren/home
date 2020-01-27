@@ -66,22 +66,22 @@ for (const device of lights) {
 
 export default [
 	{
-		name: 'All Lights On',
-		keyboardKey: 'n',
+		name: 'All Lights',
+		keyboardKey: 'a',
 		execute: async () => {
 			setDeviceStates(lights, true);
 		}
 	},
 	{
-		name: 'Side Lights Only',
-		keyboardKey: 'd',
+		name: 'Far Lights',
+		keyboardKey: 'f',
 		execute: async () => {
 			setDeviceStates(defaultLights, true);
 			setDeviceStates(notDefaultLights, false);
 		}
 	},
 	{
-		name: 'Kitchen Lights Only',
+		name: 'Kitchen Lights',
 		keyboardKey: 'k',
 		execute: async () => {
 			setDeviceState(devicesByName['Kitchen Lights'], true);
@@ -89,8 +89,8 @@ export default [
 		}
 	},
 	{
-		name: 'All Lights Off',
-		keyboardKey: 'f',
+		name: 'No Lights',
+		keyboardKey: 'n',
 		execute: async () => {
 			setDeviceStates(lights, false);
 		}
