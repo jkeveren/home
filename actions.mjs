@@ -73,8 +73,8 @@ export default [
 		}
 	},
 	{
-		name: 'Far Lights',
-		keyboardKey: 'f',
+		name: 'Default Lights',
+		keyboardKey: 'd',
 		execute: async () => {
 			setDeviceStates(defaultLights, true);
 			setDeviceStates(notDefaultLights, false);
