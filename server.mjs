@@ -56,5 +56,5 @@ HTTPServer.on('request', async (request, response) => {
 	}
 });
 
-const port = process.env.port || 50000;
+const port = process.env.PORT || 50000;
 HTTPServer.listen(port, () => console.log(`http://127.0.0.1:${port}`));
