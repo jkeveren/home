@@ -4,7 +4,8 @@ After=network.target
 [Service]
 Type=simple
 User=server
-WorkingDirectory=/home/server/home-control
+Environment="PORT=50003"
+WorkingDirectory=/home/server/home
 ExecStart=/usr/bin/node --experimental-modules ./server.mjs
 Restart=on-failure
 
