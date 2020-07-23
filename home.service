@@ -3,7 +3,11 @@ After=network.target
 [Service]
 Type=simple
 User=server
+<<<<<<< HEAD
 Environment="PORT=50001"
+=======
+Environment="PORT=50003"
+>>>>>>> a2506b350bdf6801f04df409c8344454a0cbf315
 WorkingDirectory=/home/server/home
 ExecStart=/usr/bin/node --experimental-modules ./server.mjs
 Restart=on-failure
